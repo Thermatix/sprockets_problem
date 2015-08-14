@@ -1,6 +1,6 @@
 require 'bundler/inline'
 
-gemfile do
+gemfile false do
 	source 'https://rubygems.org'
 	gem "sinatra", "1.4.6"
 	gem "sprockets", "~> 3.3"
@@ -10,6 +10,7 @@ gemfile do
 	gem "react.rb", "0.3.0.13"
 	gem "puma", "2.11.2"
 	gem "tilt", "~> 2.0"
+	gem "sprockets-helpers", "~> 1.2"
 end
 
 require 'sinatra/base'
@@ -21,7 +22,7 @@ class App < Sinatra::Base
 	set :sessions, true
 	set :root, File.expand_path('.',File.dirname(__FILE__))
 	set :threaded, true
-	set :asset_folder, 'assets'
+	# set :assets_prefix, 'assets'
 	set :server, :puma
 	Tilt.register Tilt::ERBTemplate, 'html.erb'
 	# include Assets

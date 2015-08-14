@@ -1,6 +1,7 @@
 require "yui/compressor"
 require "sass"
 require 'sprockets'
+require 'sprockets-helpers'
 require 'opal'
 
 module Assets
@@ -14,8 +15,11 @@ module Assets
 		def defaults
 			{
 				root: Dir.pwd,
-				asset_folder: 'assets',
+				assets_prefix: 'assets',
 				asset_folders: %w{javascripts stylesheets fonts images},
+				public_folder: -> {"#{settings.root}/public" },
+				asset_folder: -> {"#{settings.root}/#{settings.assets_prefix}" },
+				digest: false,
 				assets: -> { 
 					Sprockets::Environment.new do |env|
 						#register opal with sprockets
@@ -23,7 +27,7 @@ module Assets
 						Opal.paths.each {|p|env.append_path p}
 						
 						#set up asset root folder
-						env.append_path "#{settings.root}/#{settings.asset_folder}"
+						env.append_path settings.asset_folder
 						#set up compressers and pre-proccessors
 						env.js_compressor = YUI::JavaScriptCompressor.new
 						env.css_compressor = :sass
@@ -39,9 +43,9 @@ module Assets
 		end
 	end
 
-	@get_asset = Proc.new do |file_name,extention,asset_type=nil|
+	@get_asset = Proc.new do |file_name,extention|
 		content_type mime_types[extention]
-		settings.assets[[asset_type,"#{file_name}#{extention}"].compact.join('/')]
+		settings.assets["#{file_name}#{extention}"]
 	end
 
 	def mime_types
@@ -59,37 +63,52 @@ module Assets
 
 			#configure opal
 			Opal::Config.config.each do |c_option,default|
-			    unless settings.respond_to? c_option
+			    if settings.respond_to? c_option
 			        c = "#{c_option}="
-			        Opal::Config.send(c,assets.opal_config[c_option])
+			        Opal::Config.send(c,settings.send(c_option))
 			    end 
+			end
+
+			configure do
+				assets.defaults.each do |key,to_value|
+					set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) unless settings.respond_to? key
+				end 
+
+				Sprockets::Helpers.configure do |config|
+					config.environment = settings.assets
+					config.prefix      = settings.assets_prefix
+					config.digest      = settings.digest
+					config.public_path = settings.public_folder
+
+					# Force to debug mode in development mode
+					# Debug mode automatically sets
+					# expand = true, digest = false, manifest = false
+					config.debug       = true if ENV['RACK_ENV'] != 'production'
+				end
+
+				::Sass.load_paths << "#{settings.asset_folder}/" + assets.find_css_path(self.asset_folders)
 			end
 
 			if ENV['RACK_ENV'] == 'production'
 				Opal::Processor.source_map_enabled = false
 			else
-				Opal::Processor.source_map_enabled = false
+				Opal::Processor.source_map_enabled = true
+				maps_prefix = '/__OPAL_SOURCE_MAPS__'
+				::Opal::Sprockets::SourceMapHeaderPatch.inject!(maps_prefix)
+				get maps_prefix do
+					Opal::SourceMapServer.new(settings.assets, maps_prefix).run
+				end
 			end
-
-			asset_root = "#{settings.root}/#{settings.asset_folder}"
-			configure do
-				assets.defaults.each do |key,to_value|
-					set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) unless settings.respond_to? key
-				end 
-				::Sass.load_paths << "#{asset_root}/" + assets.find_css_path(self.asset_folders)
-			end
-
 			
-			##add asset routes for asset_folder folder
+			##add asset routes for assets_prefix folder
 			
-			get %r{/#{settings.asset_folder}/(.*)(\W.*)$} do
+			get %r{/#{settings.assets_prefix}/(.*|(?:.*/.*))(\W.*)$} do
 				self.instance_exec(*params[:captures],&assets.get_asset)
 			end
-
 			#add asset types
 			settings.asset_folders.each do |asset_type|
-				get %r{/#{settings.asset_folder}/#{asset_type}/(.*)(\W.*)$} do
-					self.instance_exec(*params[:captures],asset_type,&assets.get_asset)
+				get %r{/#{settings.assets_prefix}/#{asset_type}/(.*|(?:.*/.*))(\W.*)$} do
+					self.instance_exec(*params[:captures],&assets.get_asset)
 				end
 			end
 		end
