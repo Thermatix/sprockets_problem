@@ -15,10 +15,10 @@ module Assets
 		def defaults
 			{
 				root: Dir.pwd,
-				assets_prefix: 'assets',
+				prefix: 'assets',
 				asset_folders: %w{javascripts stylesheets fonts images},
-				public_folder: -> {"#{settings.root}/public" },
-				asset_folder: -> {"#{settings.root}/#{settings.assets_prefix}" },
+				public_path: -> {"#{settings.root}/public" },
+				asset_folder: -> {"#{settings.root}/#{settings.prefix}" },
 				digest: false,
 				assets: -> { 
 					Sprockets::Environment.new do |env|
@@ -69,6 +69,14 @@ module Assets
 			    end 
 			end
 
+			# method_missing_enabled:    true,
+	  #       arity_check_enabled:       false,
+	  #       const_missing_enabled:     true,
+	  #       dynamic_require_severity:  :error, # :error, :warning or :ignore
+	  #       irb_enabled:               false,
+	  #       inline_operators_enabled:  true,
+	  #       source_map_enabled:        true,
+
 			configure do
 				assets.defaults.each do |key,to_value|
 					unless settings.respond_to? key
@@ -77,10 +85,10 @@ module Assets
 				end 
 
 				Sprockets::Helpers.configure do |config|
+					%w{prefix digest public_path}.each do |item|
+						config.send(:"#{item}=", settings.send(item))
+					end					
 					config.environment = settings.assets
-					config.prefix      = settings.assets_prefix
-					config.digest      = settings.digest
-					config.public_path = settings.public_folder
 					config.debug       = true if ENV['RACK_ENV'] != 'production'
 				end
 
@@ -88,19 +96,19 @@ module Assets
 			end
 
 			if ENV['RACK_ENV'] == 'production'
-				Opal::Processor.source_map_enabled = false
+				Opal::Config.source_map_enabled = false
 			else
-				Opal::Processor.source_map_enabled = false
+				Opal::Config.source_map_enabled = false
 			end
 			
-			##add asset routes for assets_prefix folder
+			##add asset routes for prefix folder
 			
-			get %r{/#{settings.assets_prefix}/(.*|(?:.*/.*))(\W.*)$} do
+			get %r{/#{settings.prefix}/(.*|(?:.*/.*))(\W.*)$} do
 				self.instance_exec(*params[:captures],&assets.get_asset)
 			end
 			#add asset types
 			settings.asset_folders.each do |asset_type|
-				get %r{/#{settings.assets_prefix}/#{asset_type}/(.*|(?:.*/.*))(\W.*)$} do
+				get %r{/#{settings.prefix}/#{asset_type}/(.*|(?:.*/.*))(\W.*)$} do
 					self.instance_exec(*params[:captures],&assets.get_asset)
 				end
 			end
