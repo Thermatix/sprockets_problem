@@ -1,3 +1,2 @@
-require 'opal'
 
 require 'javascripts/hello_world'

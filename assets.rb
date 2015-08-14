@@ -11,8 +11,6 @@ module Assets
 
 	class << self
 		attr_reader :get_asset
-		attr_accessor :opal_config
-
 		def defaults
 			{
 				root: Dir.pwd,
@@ -20,13 +18,12 @@ module Assets
 				asset_folders: %w{javascripts stylesheets fonts images},
 				assets: -> { 
 					Sprockets::Environment.new do |env|
-						asset_root = "#{settings.root}/#{settings.asset_folder}"
 						#register opal with sprockets
 						env.register_engine '.orb', Opal::Processor					
 						Opal.paths.each {|p|env.append_path p}
 						
 						#set up asset root folder
-						env.append_path asset_root
+						env.append_path "#{settings.root}/#{settings.asset_folder}"
 						#set up compressers and pre-proccessors
 						env.js_compressor = YUI::JavaScriptCompressor.new
 						env.css_compressor = :sass
@@ -59,6 +56,14 @@ module Assets
 
 	def self.included base
 		base.class_exec(self) do |assets|
+
+			#configure opal
+			Opal::Config.config.each do |c_option,default|
+			    unless settings.respond_to? c_option
+			        c = "#{c_option}="
+			        Opal::Config.send(c,assets.opal_config[c_option])
+			    end 
+			end
 
 			if ENV['RACK_ENV'] == 'production'
 				Opal::Processor.source_map_enabled = false
