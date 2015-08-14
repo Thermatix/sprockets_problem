@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+require_relative 'app'
+
+server_config = {
+		:Host => '0.0.0.0',
+		:Port => '8080',
+		:Threads => "0:16",
+		:Verbose => false,
+		:environment => 'development'
+	}
+
+Rack::Handler::pick(['puma']).run App,server_config
