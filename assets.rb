@@ -29,7 +29,7 @@ module Assets
 						#set up asset root folder
 						env.append_path settings.asset_folder
 						#set up compressers and pre-proccessors
-						env.js_compressor = YUI::JavaScriptCompressor.new
+						env.js_compressor = YUI::JavaScriptCompressor.new unless ENV['RACK_ENV'] != 'production'
 						env.css_compressor = :sass
 					end
 				}
@@ -71,7 +71,9 @@ module Assets
 
 			configure do
 				assets.defaults.each do |key,to_value|
-					set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) unless settings.respond_to? key
+					unless settings.respond_to? key
+						set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) 
+					end
 				end 
 
 				Sprockets::Helpers.configure do |config|
@@ -79,10 +81,6 @@ module Assets
 					config.prefix      = settings.assets_prefix
 					config.digest      = settings.digest
 					config.public_path = settings.public_folder
-
-					# Force to debug mode in development mode
-					# Debug mode automatically sets
-					# expand = true, digest = false, manifest = false
 					config.debug       = true if ENV['RACK_ENV'] != 'production'
 				end
 
@@ -92,12 +90,7 @@ module Assets
 			if ENV['RACK_ENV'] == 'production'
 				Opal::Processor.source_map_enabled = false
 			else
-				Opal::Processor.source_map_enabled = true
-				maps_prefix = '/__OPAL_SOURCE_MAPS__'
-				::Opal::Sprockets::SourceMapHeaderPatch.inject!(maps_prefix)
-				get maps_prefix do
-					Opal::SourceMapServer.new(settings.assets, maps_prefix).run
-				end
+				Opal::Processor.source_map_enabled = false
 			end
 			
 			##add asset routes for assets_prefix folder
