@@ -34,6 +34,10 @@ module Assets
 				}
 			}
 		end
+
+		def find_css_path a_r
+			Dir.exist?("#{a_r}/stylesheets") ? "#{a_r}/stylesheets" :  "#{a_r}/css"			
+		end
 	end
 
 	@get_asset = Proc.new do |file_name,extention,asset_type=nil|
@@ -64,8 +68,8 @@ module Assets
 			configure do
 				assets.defaults.each do |key,to_value|
 					set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) unless settings.respond_to? key
-				end
-				::Sass.load_paths << "#{asset_root}/stylesheets"
+				end 
+				::Sass.load_paths << assets.find_css_path(asset_root)
 			end
 
 			
