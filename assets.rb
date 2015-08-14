@@ -38,11 +38,7 @@ module Assets
 
 	@get_asset = Proc.new do |file_name,extention,asset_type=nil|
 		content_type mime_types[extention]
-		path = [asset_type,"#{file_name}#{extention}"].compact.join('/')
-		env_sprockets = request.env.dup
-		env_sprockets['PATH_INFO'] = path
-		puts path
-		settings.assets[path]
+		settings.assets[[asset_type,"#{file_name}#{extention}"].compact.join('/')]
 	end
 
 	def mime_types
