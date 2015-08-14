@@ -1,7 +1,7 @@
 require "yui/compressor"
 require "sass"
 require 'sprockets'
-require 'sprockets-helpers'
+require 'sinatra/sprockets-helpers'
 require 'opal'
 
 module Assets
@@ -112,9 +112,9 @@ module Assets
 				end
 			end
 
-			helpers do 
-				 include Sprockets::Helpers
-			end
+			
+			register ::Sinatra::Sprockets::Helpers
+			
 		end
 	end
 
