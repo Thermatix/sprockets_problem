@@ -35,8 +35,10 @@ module Assets
 			}
 		end
 
-		def find_css_path a_r
-			Dir.exist?("#{a_r}/stylesheets") ? "#{a_r}/stylesheets" :  "#{a_r}/css"			
+		def find_css_path a_r,asset_folders
+			%w{css stylesheets}.each do |folder|
+				break "#{a_r}/#{folder}" if asset_folders.include? folder
+			end
 		end
 	end
 
@@ -69,7 +71,7 @@ module Assets
 				assets.defaults.each do |key,to_value|
 					set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) unless settings.respond_to? key
 				end 
-				::Sass.load_paths << assets.find_css_path(asset_root)
+				::Sass.load_paths << assets.find_css_path(asset_root,self.asset_folders)
 			end
 
 			
