@@ -1,16 +1,19 @@
 require 'bundler/inline'
-require_relative 'assets'
 
-gemfile true do
+gemfile do
 	source 'https://rubygems.org'
 	gem "sinatra", "1.4.6"
-	gem "sprockets", "2.12.4"
+	gem "sprockets", "~> 3.3"
 	gem "sass", "3.4.13"
 	gem "yui-compressor", "0.12.0"
-	gem "opal", "~> 0.6"
-	gem "react.rb", "~> 0.3"
+	gem "opal", "~> 0.8"
+	gem "react.rb", "0.3.0.13"
 	gem "puma", "2.11.2"
+	gem "tilt", "~> 2.0"
 end
+
+require 'sinatra/base'
+require_relative 'assets'
 
 class App < Sinatra::Base
 
@@ -18,12 +21,17 @@ class App < Sinatra::Base
 	set :sessions, true
 	set :root, File.expand_path('.',File.dirname(__FILE__))
 	set :threaded, true
-	set :asset_root, 'assets'
+	set :asset_folder, 'assets'
 	set :server, :puma
 	Tilt.register Tilt::ERBTemplate, 'html.erb'
-	include Assets
+	# include Assets
 
 	get '/' do
 		erb :index
 	end
+
+	include Assets
+	
+
+
 end
