@@ -111,6 +111,10 @@ module Assets
 					self.instance_exec(*params[:captures],&assets.get_asset)
 				end
 			end
+
+			helpers do 
+				 include Sprockets::Helpers
+			end
 		end
 	end
 
