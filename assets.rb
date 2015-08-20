@@ -23,7 +23,7 @@ module Assets
 				assets: -> { 
 					Sprockets::Environment.new do |env|
 						#register opal with sprockets
-						env.register_engine '.orb', Opal::Processor					
+						# env.register_engine '.orb', Opal::Processor					
 						Opal.paths.each {|p|env.append_path p}
 						
 						#set up asset root folder
