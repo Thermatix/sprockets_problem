@@ -29,16 +29,21 @@ module React_State_Machine
 
 
 	def using_state_action
-		self.instance_eval(&self.class.state_actions[get_current_state])
+		action = self.class.state_actions[get_current_state]
+		if action.respond_to?(:call)
+			self.instance_eval(&action)
+		else
+			send(action)
+		end
 	end
 	
 
 
 	module API	
 
-		def state_action state, &block
+		def state_action state, func_name=nil &block
 			@state_actions ||= {}
-			@state_actions[state] = block
+			@state_actions[state] = func_name||block
 		end
 
 
