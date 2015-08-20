@@ -7,12 +7,19 @@ class App < Base
 	event :logged_in,{from: :login, to: :search}
 	event :logged_out,{from: :search, to: :login}
 
-	state_action(:login) {present LoginForm, app: self}
-	state_action(:search) {"logged in, yay"}
+	state_action :login,:display_login
+	state_action :search, :display_search
 
 	define_state :logged_in, :false
 	define_state :flash, {} 
 
+	def display_login
+		present LoginForm, app: self
+	end
+
+	def display_search
+		"logged in, yay"
+	end
 
 	def render
 		present Flash, data: self.flash, app: self
