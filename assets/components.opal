@@ -1,0 +1,8 @@
+require "components/react_state_machine"
+require "components/base"
+require "components/app"
+require "components/spinner"
+require "components/flash"
+require "components/login_form"
+require "components/login"
+require "components/helpers"
