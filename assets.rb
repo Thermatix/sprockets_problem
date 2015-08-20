@@ -1,11 +1,12 @@
 require "yui/compressor"
 require "sass"
 require 'sprockets'
-require 'sinatra/sprockets-helpers'
+require 'sprockets-helpers'
 require 'opal'
 
+
 module Assets
-	
+		
 	Opal = ::Opal
 	Sprockets = ::Sprockets
 	
@@ -16,15 +17,27 @@ module Assets
 			{
 				root: Dir.pwd,
 				prefix: 'assets',
-				asset_folders: %w{javascripts stylesheets fonts images},
+				asset_folders: %w{javascripts stylesheets font images},
 				public_path: -> {"#{settings.root}/public" },
 				asset_folder: -> {"#{settings.root}/#{settings.prefix}" },
 				digest: false,
-				assets: -> { 
+				opal_libs: [],
+				sprockets: -> { 
 					Sprockets::Environment.new do |env|
 						#register opal with sprockets
-						# env.register_engine '.orb', Opal::Processor					
+						# env.register_engine '.opal', Opal::Processor	
+
+						#require opal libraries to load path
+						settings.opal_libs.each do |lib|
+							puts "require opal lib #{lib}"
+							require lib
+						end
+
 						Opal.paths.each {|p|env.append_path p}
+						
+						settings.asset_folders.each do |folder|
+							env.append_path "#{settings.asset_folder}/#{folder}"
+						end
 						
 						#set up asset root folder
 						env.append_path settings.asset_folder
@@ -45,15 +58,13 @@ module Assets
 
 	@get_asset = Proc.new do |file_name,extention|
 		content_type mime_types[extention]
-		settings.assets["#{file_name}#{extention}"]
+		settings.sprockets["#{file_name}#{extention}"]
 	end
 
-	def mime_types
+	def mime_types 
 		{
-			".css" 	=> 	"text/css",
-			".js" 	=> 	"application/javascript",
-			".jpeg" =>	"image/jpeg",
-	 		".jpg"	=> 	"image/jpeg"
+			".css" => "text/css",
+			".js" => "application/javascript"
 		}
 	end
 	
@@ -70,14 +81,15 @@ module Assets
 			end
 
 			# method_missing_enabled:    true,
-	  #       arity_check_enabled:       false,
-	  #       const_missing_enabled:     true,
-	  #       dynamic_require_severity:  :error, # :error, :warning or :ignore
-	  #       irb_enabled:               false,
-	  #       inline_operators_enabled:  true,
-	  #       source_map_enabled:        true,
+	  		#arity_check_enabled:       false,
+	  		#const_missing_enabled:     true,
+	  		#dynamic_require_severity:  :error, # :error, :warning or :ignore
+	  		#irb_enabled:               false,
+	  		#inline_operators_enabled:  true,
+	  		#source_map_enabled:        true,
 
 			configure do
+				Tilt.register Tilt::ERBTemplate, 'html.erb'
 				assets.defaults.each do |key,to_value|
 					unless settings.respond_to? key
 						set key, ( to_value.respond_to?(:call) ? self.instance_exec(&to_value) : to_value) 
@@ -85,11 +97,11 @@ module Assets
 				end 
 
 				Sprockets::Helpers.configure do |config|
-					%w{prefix digest public_path}.each do |item|
-						config.send(:"#{item}=", settings.send(item))
-					end					
-					config.environment = settings.assets
-					config.debug       = true if ENV['RACK_ENV'] != 'production'
+					config.prefix = settings.prefix
+					config.digest = settings.digest
+					config.public_path = settings.public_path	
+					config.environment = settings.sprockets
+					config.debug       = true unless ENV['RACK_ENV'] == 'production'
 				end
 
 				::Sass.load_paths << "#{settings.asset_folder}/" + assets.find_css_path(self.asset_folders)
@@ -112,9 +124,10 @@ module Assets
 					self.instance_exec(*params[:captures],&assets.get_asset)
 				end
 			end
-
 			
-			register ::Sinatra::Sprockets::Helpers
+			
+			helpers Sprockets::Helpers
+
 			
 		end
 	end

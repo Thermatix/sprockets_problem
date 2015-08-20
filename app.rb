@@ -1,16 +1,18 @@
 require 'bundler/inline'
 
-gemfile false do
+gemfile false do #change this to true to install gems
 	source 'https://rubygems.org'
 	gem "sinatra", "1.4.6"
 	gem "sprockets", "~> 3.3"
 	gem "sass", "3.4.13"
 	gem "yui-compressor", "0.12.0"
-	gem "opal", "~> 0.8"
 	gem "react.rb", "0.3.0.13"
 	gem "puma", "2.11.2"
 	gem "tilt", "~> 2.0"
 	gem "sprockets-helpers", "~> 1.2"
+    gem "opal", "0.9.0.dev"
+    gem "opal-jquery", "~> 0.4"
+    gem "react.rb", "0.3.0.13" #build from 'react-v0.13' branch 
 end
 
 require 'sinatra/base'
@@ -22,10 +24,8 @@ class App < Sinatra::Base
 	set :sessions, true
 	set :root, File.expand_path('.',File.dirname(__FILE__))
 	set :threaded, true
-	# set :assets_prefix, 'assets'
 	set :server, :puma
-	Tilt.register Tilt::ERBTemplate, 'html.erb'
-	# include Assets
+	set :opal_libs, %w{react opal-jquery}
 
 	get '/' do
 		erb :index
